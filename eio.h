@@ -208,7 +208,7 @@ enum
   #define EIO_TSTAMP_IS_NOW(ts)  ((ts) == -1.)
   #define EIO_TSTAMP_IS_OMIT(ts) ((ts) == -2.)
   #define EIO_TSTAMP_IS_NONNEGATIVE(ts) ((ts) >= 0.)
-  tpedef double eio_tstamp;
+  typedef double eio_tstamp;
 #else
   #define EIO_TSTAMP_NSEC_NOW  (0x3fffffffU)
   #define EIO_TSTAMP_NSEC_OMIT (0x3ffffffeU)

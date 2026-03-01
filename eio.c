@@ -596,7 +596,7 @@ eio_tstamp_to_timeval (eio_tstamp ts, struct timeval *tv)
 {
 #if EIO_TSTAMP_IS_DOUBLE
   tv->tv_sec  = ts;
-  tv->tv_usec = (ts - tv->tv_sec) * 1e9;
+  tv->tv_usec = (ts - tv->tv_sec) * 1e6;
 #else
   tv->tv_sec = ts.n & 0xc0000000U; /* top 2 bits */
   tv->tv_sec <<= 16; tv->tv_sec <<= 16; /* undefined behaviour if overflow occurs and tv_sec is 32 bit */
