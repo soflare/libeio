@@ -292,7 +292,7 @@ Example: Make sure we haven't accidentally been linked against the wrong
 version.
 .Sp
 .Vb 3
-\&  assert (("libev version mismatch",
+\&  assert (((void)"libev version mismatch",
 \&           ev_version_major () == EV_VERSION_MAJOR
 \&           && ev_version_minor () >= EV_VERSION_MINOR));
 .Ve
@@ -307,7 +307,7 @@ Example: make sure we have the epoll method, because yeah this is cool and
 a must have and can we have a torrent of it please!!!11
 .Sp
 .Vb 2
-\&  assert (("sorry, no epoll, no sex",
+\&  assert (((void)"sorry, no epoll, no sex",
 \&           ev_supported_backends () & EVBACKEND_EPOLL));
 .Ve
 .IP "unsigned int ev_recommended_backends ()" 4

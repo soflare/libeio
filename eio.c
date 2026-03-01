@@ -305,6 +305,8 @@ static void eio_destroy (eio_req *req);
 #if HAVE_RENAMEAT2
 # include <sys/syscall.h>
 # include <linux/fs.h>
+#else
+# include <stdio.h>
 #endif
 
 #ifndef D_TYPE
@@ -1025,10 +1027,12 @@ eio__mtouch (eio_req *req)
     intptr_t page = eio_pagesize ();
 
     if (addr < end)
-      if (flags & EIO_MT_MODIFY) /* modify */
-        do { *((volatile sig_atomic_t *)addr) |= 0; } while ((addr += page) < end && !EIO_CANCELLED (req));
-      else
-        do { *((volatile sig_atomic_t *)addr)     ; } while ((addr += page) < end && !EIO_CANCELLED (req));
+      {
+        if (flags & EIO_MT_MODIFY) /* modify */
+          do { *((volatile sig_atomic_t *)addr) |= 0; } while ((addr += page) < end && !EIO_CANCELLED (req));
+        else
+          do { *((volatile sig_atomic_t *)addr)     ; } while ((addr += page) < end && !EIO_CANCELLED (req));
+      }
   }
 
   return 0;
@@ -1524,31 +1528,33 @@ eio__scandir (eio_req *req, etp_worker *self)
           if (flags & EIO_READDIR_STAT_ORDER)
             eio_dent_sort (dents, dentoffs, flags & EIO_READDIR_DIRS_FIRST ? 7 : 0, inode_bits);
           else if (flags & EIO_READDIR_DIRS_FIRST)
-            if (flags & EIO_READDIR_FOUND_UNKNOWN)
-              eio_dent_sort (dents, dentoffs, 7, inode_bits); /* sort by score and inode */
-            else
-              {
-                /* in this case, all is known, and we just put dirs first and sort them */
-                eio_dirent *oth = dents + dentoffs;
-                eio_dirent *dir = dents;
+            {
+              if (flags & EIO_READDIR_FOUND_UNKNOWN)
+                eio_dent_sort (dents, dentoffs, 7, inode_bits); /* sort by score and inode */
+              else
+                {
+                  /* in this case, all is known, and we just put dirs first and sort them */
+                  eio_dirent *oth = dents + dentoffs;
+                  eio_dirent *dir = dents;
 
-                /* now partition dirs to the front, and non-dirs to the back */
-                /* by walking from both sides and swapping if necessary */
-                while (oth > dir)
-                  {
-                    if (dir->type == EIO_DT_DIR)
-                      ++dir;
-                    else if ((--oth)->type == EIO_DT_DIR)
-                      {
-                        eio_dirent tmp = *dir; *dir = *oth; *oth = tmp;
-
+                    /* now partition dirs to the front, and non-dirs to the back */
+                  /* by walking from both sides and swapping if necessary */
+                  while (oth > dir)
+                    {
+                      if (dir->type == EIO_DT_DIR)
                         ++dir;
-                      }
-                  }
+                      else if ((--oth)->type == EIO_DT_DIR)
+                        {
+                          eio_dirent tmp = *dir; *dir = *oth; *oth = tmp;
 
-                /* now sort the dirs only (dirs all have the same score) */
-                eio_dent_sort (dents, dir - dents, 0, inode_bits);
-              }
+                          ++dir;
+                        }
+                    }
+
+                  /* now sort the dirs only (dirs all have the same score) */
+                  eio_dent_sort (dents, dir - dents, 0, inode_bits);
+                }
+            }
 
           break;
         }
@@ -2457,7 +2463,7 @@ eio_grp_limit (eio_req *grp, int limit)
 void
 eio_grp_add (eio_req *grp, eio_req *req)
 {
-  assert (("cannot add requests to IO::AIO::GRP after the group finished", grp->int1 != 2));
+  assert (((void)"cannot add requests to IO::AIO::GRP after the group finished", grp->int1 != 2));
 
   grp->flags |= ETP_FLAG_GROUPADD;
 

@@ -421,7 +421,7 @@ etp_start_thread (etp_pool pool)
   etp_worker *wrk = calloc (1, sizeof (etp_worker));
 
   /*TODO*/
-  assert (("unable to allocate worker thread data", wrk));
+  assert (((void)"unable to allocate worker thread data", wrk));
 
   wrk->pool = pool;
 
