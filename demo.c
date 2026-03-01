@@ -7,8 +7,10 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 
 #include "eio.h"
+#include "getaddrinfo.h"
 
 int respipe [2];
 
@@ -116,6 +118,42 @@ open_cb (eio_req *req)
   return 0;
 }
 
+int gai_cb(eio_req* req)
+{
+  printf ("gai_cb = %zd\n", EIO_RESULT (req));
+  if (req->result)
+    {
+      printf("getaddrinfo: %s\n", strerror(req->errorno));
+      return 0;
+    }
+
+  struct addrinfo *ai = (struct addrinfo *)EIO_BUF (req);
+  for (struct addrinfo *res = (struct addrinfo*)req->ptr2; res; res = res->ai_next)
+    {
+      void *addr;
+      in_port_t port;
+      char buf[48];
+      switch (res->ai_family)
+        {
+          case AF_INET:
+            addr = &((struct sockaddr_in*)res->ai_addr)->sin_addr;
+            port = ((struct sockaddr_in*)res->ai_addr)->sin_port;
+            break;
+          case AF_INET6:
+            addr = &((struct sockaddr_in6*)res->ai_addr)->sin6_addr;
+            port = ((struct sockaddr_in6*)res->ai_addr)->sin6_port;
+            break;
+          default:
+            abort();
+        }
+      inet_ntop(res->ai_family, addr, buf, sizeof(buf));
+      printf ("IPv%d address: %s:%u (%s)\n",
+              res->ai_family == PF_INET6 ? 6 : 4,
+              buf, ntohs(port), res->ai_canonname ?: "nil");
+    }
+  return 0;
+}
+
 int
 main (void)
 {
@@ -127,6 +165,12 @@ main (void)
 
   do
     {
+      struct addrinfo hints = {
+          AI_DEFAULT, PF_UNSPEC, SOCK_STREAM, IPPROTO_TCP, 0, NULL, NULL, NULL
+      };
+      eio_getaddrinfo("microsoft.com", "https", &hints, 0, gai_cb, "getaddrinfo");
+      event_loop ();
+
       /* avoid relative paths yourself(!) */
       eio_mkdir ("eio-test-dir", 0777, 0, res_cb, "mkdir");
       eio_nop (0, res_cb, "nop");
